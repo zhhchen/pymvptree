@@ -1,23 +1,21 @@
 import os
 from cffi import FFI
+from glob import glob
 
-HERE = os.path.basename(os.path.realpath(os.path.dirname(__file__)))
+HERE = os.path.realpath(os.path.dirname(__file__))
 
 ffi = FFI()
 
-ffi.set_source("pymvptree",
+ffi.set_source("_mvptree",
     """
     #include "mvptree.h"
-    #include "mvpplus.h"
-
+    #include "mvpwrapper.h"
+    
     """,
-    # The important thing is to inclue libc in the list of libraries we're
-    # linking against:
     libraries=["m"],
     include_dirs=[HERE],
-    sources=[os.path.join(HERE, "mvptree.c"),
-             os.path.join(HERE, "mvpplus.c")],
-    extra_compile_args=["-g"],
+    sources=glob(os.path.basename(HERE) + '*.c'),
+    # extra_compile_args=["-g"],
 )
 
 ffi.cdef("""

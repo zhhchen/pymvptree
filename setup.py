@@ -12,7 +12,7 @@ setup(name='pymvptree',
       description="Python mvptree wrapper.",
       long_description=README + '\n\n',
       setup_requires=['cffi==1.3.1'],
-      cffi_modules=['pymvptree/build_pymvptree.py:ffi'],
+      cffi_modules=['pymvptree/build_mvptree.py:ffi'],
       install_requires=['cffi==1.3.1'],
       classifiers=[
           'Intended Audience :: Developers',
