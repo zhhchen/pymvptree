@@ -3,18 +3,20 @@ from cffi import FFI
 from glob import glob
 
 HERE = os.path.realpath(os.path.dirname(__file__))
+SOURCES = glob(os.path.join(os.path.basename(HERE), '*.c'))
 
 ffi = FFI()
 
-ffi.set_source("_mvptree",
+ffi.set_source("_c_mvptree",
     """
+
     #include "mvptree.h"
     #include "mvpwrapper.h"
-    
+
     """,
     libraries=["m"],
     include_dirs=[HERE],
-    sources=glob(os.path.basename(HERE) + '*.c'),
+    sources=SOURCES,
     # extra_compile_args=["-g"],
 )
 

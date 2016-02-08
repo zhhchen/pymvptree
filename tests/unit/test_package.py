@@ -1,7 +1,6 @@
 import pytest
 
 
-@pytest.mark.wip
 def test_package_import():
     try:
         import pymvptree
