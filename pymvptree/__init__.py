@@ -57,7 +57,7 @@ class Point:
 
 
 class Tree:
-    def __init__(self, c_obj = None):
+    def __init__(self, c_obj=None):
         self.points = []
         if c_obj is None:
             self._c_obj = mvp.lib.newtree()
