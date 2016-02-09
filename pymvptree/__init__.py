@@ -4,27 +4,56 @@ import _c_mvptree as mvp
 
 
 class Point:
-    def __init__(self, id_, data, c_obj = None):
-        if not isinstance(data, bytes):
-            raise ValueError("data must be bytes")
-        self._id = id_
-        self._data = data
-        if c_obj is None:
-            self._c_obj = mvp.lib.mkpoint(
-                pickle.dumps(self._id, protocol=0),
-                self._data,
-                len(self._data))
+    """
+    Represents a data point.
+
+    :param point_id: Any pickelizable object.
+
+    :param data: `bytes`, will be used as measurement data for the inner
+                 hamming distance function. Usually your hash value.
+
+    :param c_obj: You can instantiate this object using an `MVPDP`
+                  object of `_c_mvptree` directly. Can't be used in
+                  conjunction with `point_id` and/or `data`.
+
+    """
+    def __init__(self, point_id=None, data=None, c_obj=None):
+        # Instantiate with `point_id` and `data`
+        if point_id is not None and data is not None:
+
+            # Serialize `point_id`
+            try:
+                serialized_id = pickle.dumps(point_id, protocol=0)
+            except TypeError as exc:
+                raise ValueError("`point_id` must be serializable") from exc
+
+            # `data` must be bytes
+            if not isinstance(data, bytes):
+                raise ValueError("data must be bytes")
+
+            # Create the C object.
+            c_obj = mvp.lib.mkpoint(serialized_id, data, len(data))
+
+        elif c_obj is None:
+            raise ValueError(
+                "Either (`point_id` and `data`) or `c_obj` must be defined")
+
+        if c_obj == mvp.ffi.NULL:
+            raise ValueError("Invalid point NULL.")
         else:
             self._c_obj = c_obj
 
-    @classmethod
-    def from_c_obj(cls, c_obj):
-        if c_obj == ffi.lib.NULL:
-            raise ValueError("Invalid point NULL.")
-        id_ = pickle.loads(ffi.lib.string(mvp.lib.get_point_id(c_obj)))
-        datalen = mvp.lib.get_point_datalen(c_obj)
-        data = ffi.lib.buffer(mvp.lib.get_point_data(c_obj), datalen)[:]
-        return cls(id_, data, c_obj=c_obj)
+    @property
+    def point_id(self):
+        point_id_char_p = mvp.lib.get_point_id(self._c_obj)
+        point_id_raw = mvp.ffi.string(point_id_char_p)
+        return pickle.loads(point_id_raw)
+
+    @property
+    def data(self):
+        datalen = mvp.lib.get_point_datalen(self._c_obj)
+        data_void_p = mvp.lib.get_point_data(self._c_obj)
+        return mvp.ffi.buffer(data_void_p, datalen)[:]
 
 
 class Tree:
@@ -54,7 +83,7 @@ class Tree:
         error = ffi.lib.new("MVPError *")
         res = mvp.lib.mvptree_retrieve(self._c_obj, p._c_obj, 1, 1, nbresults, error)
         if nbresults[0] > 0:
-            return Point.from_c_obj(res[0])
+            return Point(c_obj=res[0])
 
     def search(self, data, radius, limit=65535):
         p = Point(b'', data)
@@ -70,7 +99,7 @@ class Tree:
             raise RuntimeError(ffi.lib.string(mvp.lib.mvp_errstr(error[0])))
         for i in range(nbresults[0]):
             try:
-                p = Point.from_c_obj(res[i])
+                p = Point(c_obj=res[i])
             except ValueError:
                 break
             else:
