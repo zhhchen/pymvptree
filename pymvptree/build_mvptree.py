@@ -9,10 +9,7 @@ ffi = FFI()
 
 ffi.set_source("_c_mvptree",
     """
-
     #include "mvptree.h"
-    #include "mvpwrapper.h"
-
     """,
     libraries=["m"],
     include_dirs=[HERE],
@@ -22,7 +19,21 @@ ffi.set_source("_c_mvptree",
 
 ffi.cdef("""
 
-typedef ... MVPDP;
+typedef enum mvp_datatype_t { 
+    MVP_BYTEARRAY = 1, 
+    MVP_UINT16ARRAY = 2, 
+    MVP_UINT32ARRAY = 4, 
+    MVP_UINT64ARRAY = 8 
+} MVPDataType;
+
+typedef struct mvp_datapoint_t {
+    char *id;               /* null-terminated id string */
+    void *data;             /* data for this data point */
+    float *path;            /* path of distances of data point from all vantage points down tree*/
+    unsigned int datalen;   /* length of data in the type designated */    
+    MVPDataType type;       /* type of data (the bitwidth of each data element) */
+} MVPDP;
+
 typedef ... MVPTree;
 
 /* error codes */
@@ -56,20 +67,21 @@ typedef enum mvp_error_t {
     MVP_UNRECOGNIZED,       /* unrecognized node */
 } MVPError;
 
+const char* mvp_errstr(MVPError err);
 
 MVPDP *mkpoint(char *id, char *data, unsigned int datalen);
-void printpoint(MVPDP* point);
-float hamming_distance(MVPDP* pointA, MVPDP* pointB);
-char *get_point_id(MVPDP *point);
-unsigned int get_point_datalen(MVPDP *point);
-char *get_point_data(MVPDP *point);
 MVPTree *newtree(void);
-void addpoint(MVPTree *tree, MVPDP *point);
+
+void printpoint(MVPDP* point);
 void printtree(MVPTree *tree);
-MVPTree *load(char *filename);
-void save(char *filename, MVPTree *tree);
+
+float hamming_distance(MVPDP* pointA, MVPDP* pointB);
+
+MVPTree *load(char *filename, MVPError *err);
+void save(char *filename, MVPTree *tree, MVPError *err);
+
+void addpoint(MVPTree *tree, MVPDP *point);
 MVPDP** mvptree_retrieve(MVPTree *tree, MVPDP *target, unsigned int knearest, float radius,unsigned int *nbresults, MVPError *error);
-const char* mvp_errstr(MVPError err);
 
 """)
 

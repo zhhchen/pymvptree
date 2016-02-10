@@ -50,21 +50,6 @@ float hamming_distance(MVPDP *pointA, MVPDP *pointB){
 }
 
 
-char *get_point_id(MVPDP *point) {
-    return point->id;
-}
-
-
-unsigned int get_point_datalen(MVPDP *point) {
-    return point->datalen;
-}
-
-
-char *get_point_data(MVPDP *point) {
-    return point->data;
-}
-
-
 MVPDP *mkpoint(char *id, char *data, unsigned int datalen) {
     MVPDP *newpnt = dp_alloc(MVP_BYTEARRAY);
 
@@ -131,25 +116,15 @@ void printtree(MVPTree *tree) {
 }
 
 
-MVPTree *load(char *filename) {
-    MVPError err;
+MVPTree *load(char *filename, MVPError *err) {
     MVPTree *tree;
     CmpFunc distance_func = hamming_distance;
     tree = mvptree_read(filename, distance_func,
-                        MVP_BRANCHFACTOR, MVP_PATHLENGTH, MVP_LEAFCAP, &err);
-    if (err != MVP_SUCCESS) {
-        printf("ERROR(%d): %s\n", err, mvp_errstr(err));
-        return NULL;
-    } else {
-        return tree;
-    }
+                        MVP_BRANCHFACTOR, MVP_PATHLENGTH, MVP_LEAFCAP, err);
+    return tree;
 }
 
 
-void save(char *filename, MVPTree *tree) {
-    MVPError err;
-    err = mvptree_write(tree, filename, 00755);
-    if (err != MVP_SUCCESS) {
-        printf("ERROR(%d): %s\n", err, mvp_errstr(err));
-    }
+void save(char *filename, MVPTree *tree, MVPError *err) {
+    *err = mvptree_write(tree, filename, 00755);
 }
