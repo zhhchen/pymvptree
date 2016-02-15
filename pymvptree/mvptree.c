@@ -82,7 +82,6 @@ MVPDP* dp_alloc(MVPDataType type){
     newdp->datalen = 0;
     newdp->type = type;
     newdp->path = NULL;
-    // printf("dpalloc %p\n", newdp);
     return newdp;
 }
 
@@ -94,7 +93,6 @@ void dp_free(MVPDP *dp, MVPFreeFunc free_func){
 
 	if (dp->path) free(dp->path);
 	if (free_func){
-            // printf("Cleaning point %s %p!\n", name, dp);
 	    if (dp->id)	free_func(dp->id);
 	    if (dp->data) free_func(dp->data);
 	}
@@ -1030,8 +1028,6 @@ static MVPDP* read_datapoint(MVPTree *tree){
     uint8_t active, idlen;
     uint32_t bytelength, datalength;
 
-    // printf("(after read_datapoint)off:%llu\n", tree->pos);
-
     memcpy(&active, &tree->buf[tree->pos], sizeof(active));
     tree->pos += sizeof(active);
     memcpy(&bytelength, &tree->buf[tree->pos], sizeof(bytelength));
@@ -1061,14 +1057,12 @@ static MVPDP* read_datapoint(MVPTree *tree){
     memcpy(dp->path, &tree->buf[tree->pos], tree->pathlength*sizeof(float));
     tree->pos += tree->pathlength*sizeof(float);
 
-    // printf("(before read_datapoint)off:%llu\n", tree->pos);
     return dp;
 }
 
 static Node* _mvptree_read_node(MVPTree *tree, MVPError *error, int lvl){
     uint8_t node_type;
     Node *node = NULL;
-    // printf("(start read_node)lvl:%d; off:%llu\n", lvl, tree->pos);
     memcpy(&node_type, &tree->buf[tree->pos++], sizeof(uint8_t));
 
     if (node_type == LEAF_NODE){
@@ -1082,9 +1076,7 @@ static Node* _mvptree_read_node(MVPTree *tree, MVPError *error, int lvl){
 	node->leaf.sv2 = read_datapoint(tree);
 
 	memcpy(&nbpoints,&tree->buf[tree->pos], sizeof(uint32_t));
-        // printf("(after leaf)lvl:%d; off:%llu\n", lvl, tree->pos);
 	tree->pos += sizeof(uint32_t);
-        // printf("(before leaf)lvl:%d; off:%llu\n", lvl, tree->pos);
 	node->leaf.nbpoints = nbpoints;
 
 	off_t saved_pos = tree->pos;
@@ -1116,12 +1108,10 @@ static Node* _mvptree_read_node(MVPTree *tree, MVPError *error, int lvl){
 	node->internal.sv1 = read_datapoint(tree);
 	node->internal.sv2 = read_datapoint(tree);
 
-        //printf("(after internal)lvl:%d; off:%llu\n", lvl, tree->pos);
 	memcpy(node->internal.M1, &tree->buf[tree->pos], lengthM1*sizeof(float));
 	tree->pos += lengthM1*sizeof(float);
 	memcpy(node->internal.M2, &tree->buf[tree->pos], lengthM2*sizeof(float));
 	tree->pos += lengthM2*sizeof(float);
-        //printf("(before internal)lvl:%d; off:%llu\n", lvl, tree->pos);
 
 	int i;
 	off_t offset, saved_pos = tree->pos;

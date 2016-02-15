@@ -79,15 +79,6 @@ MVPDP *mkpoint(char *id, char *data, unsigned int datalen) {
         return NULL;
     }
 
-    /*
-    int i;
-    for (i = 0; i < datalen; i++)
-    {
-        printf("\\x%02x", (unsigned int)(((char *)newpnt->data)[i] & 0xFF));
-    }
-    printf("\n");
-
-    */
     return newpnt;
 }
 
