@@ -15,7 +15,8 @@ ffi.set_source("_c_mvptree",
     libraries=["m"],
     include_dirs=[HERE],
     sources=SOURCES,
-    extra_compile_args=["-g", "-O0"],
+    ## Enable debug, disable optimizations.
+    # extra_compile_args=["-g", "-O0"],
 )
 
 ffi.cdef("""

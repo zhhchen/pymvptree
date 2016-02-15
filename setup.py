@@ -3,10 +3,11 @@ from setuptools import setup, find_packages
 import os
 from distutils import sysconfig
 
-cflags = sysconfig.get_config_vars()['CFLAGS']
-
-sysconfig.get_config_vars()['CFLAGS'] = ' '.join(
-    flag for flag in cflags.split() if flag != '-O3')
+## Disable optimizations.
+# cflags = sysconfig.get_config_vars()['CFLAGS']
+# 
+# sysconfig.get_config_vars()['CFLAGS'] = ' '.join(
+#     flag for flag in cflags.split() if flag != '-O3')
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(HERE, 'README'), encoding='utf-8').read()
