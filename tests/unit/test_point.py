@@ -77,7 +77,6 @@ def test_Point_point_id_must_be_hashable():
         Point(point_id=SOMETHING, data=b'TEST')
 
 
-@pytest.mark.wip
 def test_Point_is_comparable():
     from pymvptree import Point
 
@@ -92,7 +91,6 @@ def test_Point_is_comparable():
     assert p1 != p2
 
 
-@pytest.mark.wip
 def test_Point_contains():
     from pymvptree import Point
 

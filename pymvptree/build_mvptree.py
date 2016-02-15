@@ -10,14 +10,16 @@ ffi = FFI()
 ffi.set_source("_c_mvptree",
     """
     #include "mvptree.h"
+    #include "mvpwrapper.h"
     """,
     libraries=["m"],
     include_dirs=[HERE],
     sources=SOURCES,
-    # extra_compile_args=["-g"],
+    extra_compile_args=["-g", "-O0"],
 )
 
 ffi.cdef("""
+
 
 typedef enum mvp_datatype_t { 
     MVP_BYTEARRAY = 1, 
@@ -34,7 +36,49 @@ typedef struct mvp_datapoint_t {
     MVPDataType type;       /* type of data (the bitwidth of each data element) */
 } MVPDP;
 
-typedef ... MVPTree;
+typedef enum nodetype_t { 
+    INTERNAL_NODE = 1, 
+    LEAF_NODE 
+} NodeType;
+
+typedef struct node_internal_t {
+    NodeType type;
+    MVPDP *sv1, *sv2;
+    float *M1, *M2;
+    void **child_nodes;
+} InternalNode;
+
+typedef struct node_leaf_t {
+    NodeType type;
+    MVPDP *sv1, *sv2;
+    MVPDP **points;
+    float *d1, *d2;
+    unsigned int nbpoints;
+} LeafNode;
+   
+typedef union node_t {
+    LeafNode leaf;
+    InternalNode internal;
+} Node;
+
+typedef float (*CmpFunc)(MVPDP *pointA, MVPDP *pointB);
+
+typedef long off_t;
+
+typedef struct mvptree_t {
+    int branchfactor;
+    int pathlength;
+    int leafcap;
+    int fd;
+    int k;
+    MVPDataType datatype;
+    off_t pos;
+    off_t size;
+    off_t pgsize;
+    char *buf;
+    Node *node;
+    CmpFunc dist;
+} MVPTree;
 
 /* error codes */
 typedef enum mvp_error_t {
@@ -69,19 +113,25 @@ typedef enum mvp_error_t {
 
 const char* mvp_errstr(MVPError err);
 
+unsigned char count_set_bits(unsigned char n);
+float bitlevenshtein(MVPDP *pointA, MVPDP *pointB);
+
 MVPDP *mkpoint(char *id, char *data, unsigned int datalen);
-MVPTree *newtree(void);
+void rmpoint(MVPDP *point);
+
+MVPTree *mktree(void);
+void rmtree(MVPTree *tree);
 
 void printpoint(MVPDP* point);
 void printtree(MVPTree *tree);
 
-float hamming_distance(MVPDP* pointA, MVPDP* pointB);
-
 MVPTree *load(char *filename, MVPError *err);
 void save(char *filename, MVPTree *tree, MVPError *err);
 
-void addpoint(MVPTree *tree, MVPDP *point);
+MVPError mvptree_add(MVPTree *tree, MVPDP **points, unsigned int nbpoints);
 MVPDP** mvptree_retrieve(MVPTree *tree, MVPDP *target, unsigned int knearest, float radius,unsigned int *nbresults, MVPError *error);
+
+void free(void *ptr);
 
 """)
 

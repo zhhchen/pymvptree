@@ -82,13 +82,19 @@ MVPDP* dp_alloc(MVPDataType type){
     newdp->datalen = 0;
     newdp->type = type;
     newdp->path = NULL;
+    // printf("dpalloc %p\n", newdp);
     return newdp;
 }
 
 void dp_free(MVPDP *dp, MVPFreeFunc free_func){
     if (dp){
+        /*char name[dp->datalen+1];
+        strncpy(name, dp->data, dp->datalen);
+        name[dp->datalen] = '\0';*/
+
 	if (dp->path) free(dp->path);
 	if (free_func){
+            // printf("Cleaning point %s %p!\n", name, dp);
 	    if (dp->id)	free_func(dp->id);
 	    if (dp->data) free_func(dp->data);
 	}
@@ -414,8 +420,8 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 		return NULL;
 	    }
 
-	    new_node->internal.sv1 = points[sv1_pos];
-	    new_node->internal.sv2 = points[sv2_pos];
+	    new_node->internal.sv1 = (sv1_pos >= 0) ? points[sv1_pos] : NULL;
+	    new_node->internal.sv2 = (sv2_pos >= 0) ? points[sv2_pos] : NULL;
 
 	    if (find_distance_range_for_vp(points,nbpoints,new_node->internal.sv1,tree,lvl)<0){
 		*error = MVP_NOSV1RANGE;
@@ -653,7 +659,7 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 	    results[(*nbresults)++] = node->leaf.sv1;
 	    if (*nbresults >= tree->k) return MVP_KNEARESTCAP;
 	}
-	if (tree->node->leaf.sv2){
+	if (node->leaf.sv2){
 	    d2 = distance(target, node->leaf.sv2);
 
 	    if (is_nan(d2) || d2 < 0.0f){
@@ -1124,6 +1130,7 @@ static Node* _mvptree_read_node(MVPTree *tree, MVPError *error, int lvl){
 	    saved_pos += sizeof(fileno);
 	    memcpy(&offset, &tree->buf[saved_pos], sizeof(offset));
 	    saved_pos += sizeof(offset);
+            if (offset == 0) break;
 
 	    tree->pos = offset;
 	    node->internal.child_nodes[i] = _mvptree_read_node(tree, error, lvl+2);
@@ -1261,7 +1268,3 @@ MVPError mvptree_print(FILE *stream, MVPTree *tree){
     }
     return err;
 }
-
-
-
-

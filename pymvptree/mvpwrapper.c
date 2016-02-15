@@ -5,7 +5,7 @@
 
 #define MVP_BRANCHFACTOR 2
 #define MVP_PATHLENGTH   5
-#define MVP_LEAFCAP     25
+#define MVP_LEAFCAP     15
 
 
 unsigned char count_set_bits(unsigned char n){
@@ -18,35 +18,41 @@ unsigned char count_set_bits(unsigned char n){
 }
 
 
-float hamming_distance(MVPDP *pointA, MVPDP *pointB){
-    float count = 0;
-    int i;
-    char n;
+float bitlevenshtein(MVPDP *pointA, MVPDP *pointB){
+    float count = 0, c;
+    unsigned int i;
+    char a, b;
 
-    if (pointA == NULL || pointB == NULL) {
-        printf("NULLLL!\n");
-        return 0;
-    }
+    // Extracted from mvptree examples.
+    if (!pointA || !pointB) return -1.0f;
 
-    int maxlen = pointA->datalen > pointB->datalen ? pointA->datalen : pointB->datalen;
+    unsigned int maxlen = pointA->datalen > pointB->datalen ? pointA->datalen : pointB->datalen;
 
-    for (i=0; i < maxlen; i++) {
+    for (i=0; i<maxlen; i++) {
         if ((int)pointA->datalen > i) {
-            n = ((char *)pointA->data)[i];
+            a = ((char *)pointA->data)[i];
         } else {
-            n = 0;
+            count += 8;
+            continue;
         }
 
         if ((int)pointB->datalen > i) {
-            n = n ^ ((char *)pointB->data)[i];
+            b = ((char *)pointB->data)[i];
         } else {
-            n = n ^ 0;
+            count += 8;
+            continue;
         }
 
-        count += count_set_bits(n);
+        c = count_set_bits(a ^ b);
+        count += c;
     }
     
     return count;
+}
+
+
+void rmpoint(MVPDP *point) {
+    dp_free(point, (MVPFreeFunc *)free);
 }
 
 
@@ -94,20 +100,14 @@ void printpoint(MVPDP* point) {
 }
 
 
-MVPTree *newtree(void) {
-    CmpFunc distance_func = hamming_distance;
+MVPTree *mktree(void) {
+    CmpFunc distance_func = bitlevenshtein;
     return mvptree_alloc(NULL, distance_func, MVP_BRANCHFACTOR, MVP_PATHLENGTH, MVP_LEAFCAP);
 }
 
 
-void addpoint(MVPTree *tree, MVPDP *point) {
-    MVPError err;
-    MVPDP **pointlist = (MVPDP**)malloc(sizeof(MVPDP*));
-    pointlist[0] = point;
-    err = mvptree_add(tree, pointlist, 1);
-    if (err != MVP_SUCCESS){
-	fprintf(stdout,"Unable to add to tree - %s\n", mvp_errstr(err));
-    }
+void rmtree(MVPTree *tree) {
+    mvptree_clear(tree, (MVPFreeFunc *)free);
 }
 
 
@@ -118,7 +118,7 @@ void printtree(MVPTree *tree) {
 
 MVPTree *load(char *filename, MVPError *err) {
     MVPTree *tree;
-    CmpFunc distance_func = hamming_distance;
+    CmpFunc distance_func = bitlevenshtein;
     tree = mvptree_read(filename, distance_func,
                         MVP_BRANCHFACTOR, MVP_PATHLENGTH, MVP_LEAFCAP, err);
     return tree;
