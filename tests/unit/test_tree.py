@@ -254,7 +254,7 @@ def test_Tree_save_and_load_match(datas):
     assert added_points == loaded_points
 
 
-@given(leafcap=st.integers(min_value=1))
+@given(leafcap=st.integers(min_value=1, max_value=50))
 def test_Tree_add_same_data_but_different_point_id(leafcap):
     from pymvptree import Tree, Point
 
