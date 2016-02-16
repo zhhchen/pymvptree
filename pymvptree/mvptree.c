@@ -540,8 +540,13 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 		    tmp_pts[index++] = points[i];
 		}
 		Node *old_node = new_node;
-		free_node(old_node);
 		new_node = _mvptree_add(tree, NULL, tmp_pts, new_nb, error, lvl);
+                if (*error != MVP_SUCCESS) {
+                    free_node(new_node);
+                    new_node = old_node;
+                } else {
+                    free_node(old_node);
+                }
 
 		free(tmp_pts);
 	    }
@@ -626,7 +631,9 @@ MVPError mvptree_add(MVPTree *tree, MVPDP **points, unsigned int nbpoints) {
 	    }
 	    memset(points[i]->path, 0, tree->pathlength*sizeof(float));
 	}
-	tree->node = _mvptree_add(tree, tree->node, points, nbpoints, &err, 0);
+	Node *new_node;
+        new_node = _mvptree_add(tree, tree->node, points, nbpoints, &err, 0);
+        if (err == MVP_SUCCESS) tree->node = new_node;
     }else {
 	err = MVP_ARGERR;
     }

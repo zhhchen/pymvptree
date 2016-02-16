@@ -7,6 +7,11 @@ import pickle
 import _c_mvptree as mvp
 
 
+MVP_BRANCHFACTOR = 2
+MVP_PATHLENGTH   = 5
+MVP_LEAFCAP      = 25
+
+
 class MVPError(IntEnum):
     MVP_SUCCESS        = 0
     MVP_ARGERR         = 1
@@ -85,6 +90,10 @@ class Point:
     def __init__(self, point_id=None, data=None, c_obj=None,
                  owned_memory=True):
 
+        # `point_id` and `data` cache.
+        self._point_id = None
+        self._data = None
+
         #: If `True` cffi will free the owned memory.
         self.owned_memory = owned_memory
 
@@ -135,15 +144,19 @@ class Point:
 
     @property
     def point_id(self):
-        point_id_char_p = self._c_obj[0].id
-        point_id_raw = mvp.ffi.string(point_id_char_p)
-        return pickle.loads(base64.b64decode(point_id_raw))
+        if self._point_id is None:
+            point_id_char_p = self._c_obj[0].id
+            point_id_raw = mvp.ffi.string(point_id_char_p)
+            self._point_id = pickle.loads(base64.b64decode(point_id_raw))
+        return self._point_id
 
     @property
     def data(self):
-        datalen = self._c_obj[0].datalen
-        data_void_p = self._c_obj[0].data
-        return mvp.ffi.buffer(data_void_p, datalen)[:]
+        if self._data is None:
+            datalen = self._c_obj[0].datalen
+            data_void_p = self._c_obj[0].data
+            self._data = mvp.ffi.buffer(data_void_p, datalen)[:]
+        return self._data
 
     def __hash__(self):
         return hash((self.point_id, self.data))
@@ -157,9 +170,14 @@ class Tree:
     Wrapper around MVPTree.
 
     """
-    def __init__(self, c_obj=None):
+    def __init__(self,
+                 branchfactor=MVP_BRANCHFACTOR,
+                 pathlength=MVP_PATHLENGTH,
+                 leafcap=MVP_LEAFCAP,
+                 c_obj=None):
+
         if c_obj is None:
-            _c_obj = mvp.lib.mktree()
+            _c_obj = mvp.lib.mktree(branchfactor, pathlength, leafcap)
         else:
             try:
                 if mvp.ffi.typeof(c_obj) is not mvp.ffi.typeof('MVPTree *'):
@@ -170,6 +188,9 @@ class Tree:
                 _c_obj = c_obj
 
         self._c_obj = mvp.ffi.gc(_c_obj, mvp.lib.rmtree)
+        self.branchfactor = _c_obj[0].branchfactor
+        self.pathlength = _c_obj[0].pathlength
+        self.leafcap = _c_obj[0].leafcap
 
     @classmethod
     def from_file(cls, filename):
@@ -267,5 +288,5 @@ class Tree:
             for i in range(nbresults[0]):
                 yield Point(c_obj=res[i], owned_memory=False)
         finally:
-            if res is not mvp.ffi.NULL:
+            if res is not mvp.ffi.NULL:  # pragma: no branch
                 mvp.lib.free(res)

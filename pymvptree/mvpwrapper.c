@@ -91,9 +91,9 @@ void printpoint(MVPDP* point) {
 }
 
 
-MVPTree *mktree(void) {
+MVPTree *mktree(unsigned int bf, unsigned int p, unsigned int k) {
     CmpFunc distance_func = bitlevenshtein;
-    return mvptree_alloc(NULL, distance_func, MVP_BRANCHFACTOR, MVP_PATHLENGTH, MVP_LEAFCAP);
+    return mvptree_alloc(NULL, distance_func, bf, p, k);
 }
 
 

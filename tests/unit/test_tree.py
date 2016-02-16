@@ -21,7 +21,7 @@ def test_Tree_new():
 
 
 def test_Tree_c_obj_must_be_MVPTree():
-    from pymvptree import Tree
+    from pymvptree import Tree, MVP_BRANCHFACTOR, MVP_PATHLENGTH, MVP_LEAFCAP
     from _c_mvptree import ffi, lib
 
     with pytest.raises(TypeError):
@@ -33,7 +33,7 @@ def test_Tree_c_obj_must_be_MVPTree():
     with pytest.raises(TypeError):
         Tree(c_obj=ffi.NULL)
 
-    Tree(c_obj=lib.mktree())
+    Tree(c_obj=lib.mktree(MVP_BRANCHFACTOR, MVP_PATHLENGTH, MVP_LEAFCAP))
 
 
 def test_Tree_load_from_file_unknown():
@@ -252,3 +252,40 @@ def test_Tree_save_and_load_match(datas):
     loaded_points = {p.point_id for p in t2.filter(bytes(4), 4*8)}
 
     assert added_points == loaded_points
+
+
+@given(leafcap=st.integers(min_value=1))
+def test_Tree_add_same_data_but_different_point_id(leafcap):
+    from pymvptree import Tree, Point
+
+    t = Tree(leafcap=leafcap)
+
+    for i in range(leafcap + 2):
+        t.add(Point(i, b'TEST'))
+
+    # LEAF is full
+    with pytest.raises(RuntimeError):
+        t.add(Point(-1, b'TEST'))
+
+    ids = {p.point_id for p in t.filter(b'TEST', 0)}
+
+    assert ids == set(range(leafcap + 2))
+
+
+def test_Tree_add_until_full_then_search():
+    from pymvptree import Tree, Point
+
+    t = Tree(leafcap=3)
+
+    for i in range(5):
+        t.add(Point(i, b'TEST'))
+
+    pre_full = {p.point_id for p in t.filter(b'TEST', 0)}
+
+    # LEAF is full
+    with pytest.raises(RuntimeError):
+        t.add(Point(-1, b'TEST'))
+
+    post_full = {p.point_id for p in t.filter(b'TEST', 0)}
+
+    assert pre_full == post_full

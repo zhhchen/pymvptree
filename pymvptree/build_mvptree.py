@@ -120,7 +120,7 @@ float bitlevenshtein(MVPDP *pointA, MVPDP *pointB);
 MVPDP *mkpoint(char *id, char *data, unsigned int datalen);
 void rmpoint(MVPDP *point);
 
-MVPTree *mktree(void);
+MVPTree *mktree(unsigned int bf, unsigned int p, unsigned int k);
 void rmtree(MVPTree *tree);
 
 void printpoint(MVPDP* point);
