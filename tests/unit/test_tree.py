@@ -1,3 +1,5 @@
+import os
+
 from hypothesis import given, assume, example
 from hypothesis import strategies as st
 import pytest
@@ -188,6 +190,7 @@ def test_Tree_filter_all_points(datas):
     assert current_points == all_points
 
 
+@pytest.mark.wip
 @given(datas=st.lists(st.binary(min_size=4, max_size=4),
                       average_size=100),
        target_data=st.binary(min_size=4, max_size=4),
@@ -231,7 +234,7 @@ def test_Tree_save_and_load_match(datas):
 
     t1 = Tree()
 
-    saved_points = {Point(b'', d) for d in datas}
+    saved_points = {Point(d, d) for d in datas}
     for p in saved_points:
         try:
             t1.add(p)
@@ -239,10 +242,13 @@ def test_Tree_save_and_load_match(datas):
             pass
 
     tempfile = mktemp()
-    t1.to_file(tempfile)
-    added_points = {p for p in t1.filter(bytes(4), 4*8)}
+    try:
+        t1.to_file(tempfile)
+        t2 = Tree.from_file(tempfile)
+    finally:
+        os.unlink(tempfile)
 
-    t2 = Tree.from_file(tempfile)
-    loaded_points = {p for p in t2.filter(bytes(4), 4*8)}
+    added_points = {p.point_id for p in t1.filter(bytes(4), 4*8)}
+    loaded_points = {p.point_id for p in t2.filter(bytes(4), 4*8)}
 
     assert added_points == loaded_points
