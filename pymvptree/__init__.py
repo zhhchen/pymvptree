@@ -1,4 +1,5 @@
 import pickle
+import base64
 import gc
 from contextlib import contextmanager
 import collections
@@ -51,7 +52,10 @@ class Point:
                 raise TypeError("`point_id` must be hashable.")
 
             # Serialize `point_id`
-            serialized_id = pickle.dumps(point_id, protocol=0)
+            try:
+                serialized_id = base64.b64encode(pickle.dumps(point_id))
+            except pickle.PicklingError as exc:
+                raise TypeError("`point_id` must be picklable.") from exc
 
             # `data` must be bytes
             if not isinstance(data, bytes):
@@ -87,7 +91,7 @@ class Point:
     def point_id(self):
         point_id_char_p = self._c_obj[0].id
         point_id_raw = mvp.ffi.string(point_id_char_p)
-        return pickle.loads(point_id_raw)
+        return pickle.loads(base64.b64decode(point_id_raw))
 
     @property
     def data(self):
