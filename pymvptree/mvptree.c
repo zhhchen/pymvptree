@@ -1120,11 +1120,14 @@ static Node* _mvptree_read_node(MVPTree *tree, MVPError *error, int lvl){
 	    saved_pos += sizeof(fileno);
 	    memcpy(&offset, &tree->buf[saved_pos], sizeof(offset));
 	    saved_pos += sizeof(offset);
-            if (offset == 0) break;
-
-	    tree->pos = offset;
-	    node->internal.child_nodes[i] = _mvptree_read_node(tree, error, lvl+2);
-	    if (*error != MVP_SUCCESS) break;
+            if (offset == 0) {
+                node->internal.child_nodes[i] = NULL;
+                continue;
+            } else {
+	        tree->pos = offset;
+                node->internal.child_nodes[i] = _mvptree_read_node(tree, error, lvl+2);
+        	if (*error != MVP_SUCCESS) break;
+            }
 	}
 
     } else {
