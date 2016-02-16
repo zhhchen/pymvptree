@@ -10,7 +10,7 @@ from distutils import sysconfig
 #     flag for flag in cflags.split() if flag != '-O3')
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(HERE, 'README'), encoding='utf-8').read()
+README = open(os.path.join(HERE, 'README.rst'), encoding='utf-8').read()
 
 VERSION = '0.0.1'
 
