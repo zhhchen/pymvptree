@@ -1,34 +1,78 @@
-import pickle
-import base64
-import gc
 from contextlib import contextmanager
+from enum import IntEnum
+import base64
 import collections
+import pickle
 
 import _c_mvptree as mvp
 
 
+class MVPError(IntEnum):
+    MVP_SUCCESS        = 0
+    MVP_ARGERR         = 1
+    MVP_NODISTANCEFUNC = 2
+    MVP_MEMALLOC       = 3
+    MVP_NOLEAF         = 4
+    MVP_NOINTERNAL     = 5
+    MVP_PATHALLOC      = 6
+    MVP_VPNOSELECT     = 7
+    MVP_NOSV1RANGE     = 8
+    MVP_NOSV2RANGE     = 9
+    MVP_NOSPACE        = 10
+    MVP_NOSORT         = 11
+    MVP_FILEOPEN       = 12
+    MVP_FILECLOSE      = 13
+    MVP_MEMMAP         = 14
+    MVP_MUNMAP         = 15
+    MVP_NOWRITE        = 16
+    MVP_FILETRUNCATE   = 17
+    MVP_MREMAPFAIL     = 18
+    MVP_TYPEMISMATCH   = 19
+    MVP_KNEARESTCAP    = 20
+    MVP_EMPTYTREE      = 21
+    MVP_NOSPLITS       = 22
+    MVP_BADDISTVAL     = 23
+    MVP_FILENOTFOUND   = 24
+    MVP_UNRECOGNIZED   = 25
+
+
 @contextmanager
 def mvp_errors():
+    """
+    Convert MVPError values to Python exceptions.
+
+    This context manager returns a pointer to MVPError. When the context is
+    exited the value is evaluated and a exception is raised if the value
+    is not MVP_SUCCESS.
+
+    """
     try:
-        error = mvp.ffi.new("MVPError *")
-        yield error
+        c_error = mvp.ffi.new("MVPError *")
+        yield c_error
     finally:
-        err_str = mvp.ffi.string(mvp.lib.mvp_errstr(error[0]))
-        if err_str == b"no error":
-            pass
-        elif err_str == b"could not open file":
-            raise IOError(err_str)
-        elif err_str == b"empty tree":
+        error = MVPError(c_error[0])
+
+        if error == MVPError.MVP_SUCCESS:
             pass
         else:
-            raise RuntimeError(err_str)
+            description = mvp.ffi.string(
+                mvp.lib.mvp_errstr(c_error[0])).decode('ascii')
+
+            if error in (MVPError.MVP_FILEOPEN,
+                         MVPError.MVP_FILECLOSE,
+                         MVPError.MVP_FILENOTFOUND):
+                raise IOError(error, description)
+            elif error == MVPError.MVP_EMPTYTREE:
+                raise ValueError(error, description)
+            else:
+                raise RuntimeError(error, description)
 
 
 class Point:
     """
     Represents a data point.
 
-    :param point_id: Any pickelizable object.
+    :param point_id: Any hashable and pickelizable object.
 
     :param data: `bytes`, will be used as measurement data for the inner
                  hamming distance function. Usually your hash value.
@@ -40,6 +84,8 @@ class Point:
     """
     def __init__(self, point_id=None, data=None, c_obj=None,
                  owned_memory=True):
+
+        #: If `True` cffi will free the owned memory.
         self.owned_memory = owned_memory
 
         # Instantiate with `point_id` and `data`
@@ -107,6 +153,10 @@ class Point:
 
 
 class Tree:
+    """
+    Wrapper around MVPTree.
+
+    """
     def __init__(self, c_obj=None):
         if c_obj is None:
             _c_obj = mvp.lib.mktree()
@@ -123,16 +173,24 @@ class Tree:
 
     @classmethod
     def from_file(cls, filename):
+        """Loads the tree from disk."""
         raw_filename = filename.encode("utf-8")
         with mvp_errors() as error:
             return cls(c_obj=mvp.lib.load(raw_filename, error))
 
     def to_file(self, filename):
+        """Writes the tree to disk."""
         raw_filename = filename.encode("utf-8")
         with mvp_errors() as error:
             mvp.lib.save(raw_filename, self._c_obj, error)
 
     def add(self, point):
+        """
+        Add a point or a list of points to the tree.
+
+        Only new points will be added to the tree.
+
+        """
         if isinstance(point, Point):
             pointlist = [point]
         elif isinstance(point, collections.Iterable) and \
@@ -162,12 +220,20 @@ class Tree:
             return False
 
     def get(self, point):
+        """
+        Retrieve and return the point from the tree if exists.
+
+        """
         for found in self.filter(point.data, 0):
             if found == point:
                 return point
         raise ValueError("Point not found")
 
     def exists(self, point):
+        """
+        Returns `True` if the point exists in the tree.
+
+        """
         try:
             self.get(point)
         except ValueError:
@@ -176,6 +242,13 @@ class Tree:
             return True
 
     def filter(self, data, radius, limit=65535):
+        """
+        Retrieve `limit` points from the tree at distance less or equal
+        to `threshold` from `data`.
+
+        This is a generator.
+
+        """
         p = Point(b'', data)
         nbresults = mvp.ffi.new("unsigned int *")
 
@@ -188,13 +261,11 @@ class Tree:
                                                nbresults,
                                                error)
 
+        except ValueError:  # EmptyTree
+            pass
+        else:
             for i in range(nbresults[0]):
-                try:
-                    p = Point(c_obj=res[i], owned_memory=False)
-                except TypeError:
-                    pass
-                else:
-                    yield p
+                yield Point(c_obj=res[i], owned_memory=False)
         finally:
             if res is not mvp.ffi.NULL:
                 mvp.lib.free(res)

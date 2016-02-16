@@ -44,6 +44,15 @@ def test_Point_needs_c_obj():
         p = Point()
 
 
+def test_Point_c_obj_cant_be_NULL():
+    from pymvptree import Point
+    from _c_mvptree import ffi
+
+    with pytest.raises(TypeError):
+        c_obj = ffi.new('MVPDP *[1]', [ffi.NULL])
+        p = Point(c_obj=c_obj[0])
+
+
 def test_Point_needs_c_obj_cant_be_other_ctype():
     from pymvptree import Point
     from _c_mvptree import ffi

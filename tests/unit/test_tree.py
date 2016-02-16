@@ -190,9 +190,9 @@ def test_Tree_filter_all_points(datas):
     assert current_points == all_points
 
 
-@pytest.mark.wip
 @given(datas=st.lists(st.binary(min_size=4, max_size=4),
-                      average_size=100),
+                      average_size=1000,
+                      unique=True),
        target_data=st.binary(min_size=4, max_size=4),
        threshold=st.integers(min_value=0, max_value=32))
 def test_Tree_filter_all_points_in_threshold(datas, target_data, threshold):
@@ -205,21 +205,21 @@ def test_Tree_filter_all_points_in_threshold(datas, target_data, threshold):
 
     t = Tree()
 
-    all_points = {Point(b'', d) for d in datas}
+    all_points = {Point(d, d) for d in datas}
     accepted_points = []
     for p in all_points:
         try:
             t.add(p)
         except:
-            pass
+            assume(False)
         else:
             accepted_points.append(p)
 
-    matching_points = {p
+    matching_points = {p.point_id
                        for p in accepted_points
                        if hamming(p, target) <= threshold}
-    
-    current_points = {p for p in t.filter(target.data, threshold)}
+
+    current_points = {p.point_id for p in t.filter(target.data, threshold)}
 
     assert current_points == matching_points
 
