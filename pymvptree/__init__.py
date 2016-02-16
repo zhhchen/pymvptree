@@ -290,3 +290,6 @@ class Tree:
         finally:
             if res is not mvp.ffi.NULL:  # pragma: no branch
                 mvp.lib.free(res)
+
+
+__all__ = ['Point', 'Tree']
