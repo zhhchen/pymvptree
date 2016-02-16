@@ -452,6 +452,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 		    free_node(new_node);
 		    for (j=0;j<tree->branchfactor;j++){free(bins[j]);}
 		    free(bins);
+                    free(binlengths);
 		    return NULL;
 		}
 
@@ -461,6 +462,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 		    free_node(new_node);
 		    for (j=0;j<tree->branchfactor;j++){free(bins[j]);}
 		    free(bins);
+                    free(binlengths);
 		    return NULL;
 		}
 
@@ -473,6 +475,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 		    for (j=0;j<tree->branchfactor;j++){free(bins[j]);}
 		    free(bins);
 		    free_node(new_node);
+                    free(binlengths);
 		    return NULL;
 		}
 
@@ -577,6 +580,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 		    *error = MVP_NOSV2RANGE;
 		    for (j=0;j<tree->branchfactor;j++){free(bins[j]);}
 		    free(bins);
+                    free(binlengths);
 		    return new_node;
 		}
 
@@ -588,6 +592,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 		    *error = MVP_NOSORT;
 		    for (j=0;j<tree->branchfactor;j++){free(bins[j]);}
 		    free(bins);
+                    free(binlengths);
 		    return new_node;
 		}
 		for (j=0;j<tree->branchfactor;j++){
