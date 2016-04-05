@@ -12,7 +12,7 @@ from distutils import sysconfig
 HERE = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(HERE, 'README.rst'), encoding='utf-8').read()
 
-VERSION = '0.0.1'
+VERSION = '1.0.0'
 
 setup(name='pymvptree',
       version=VERSION,
