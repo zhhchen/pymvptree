@@ -322,6 +322,28 @@ def test_Tree_add_and_exists_until_full(leafcap, data):
     assert added_data == set(t.filter(b'0', 8))
 
 
+@given(point_id=st.text())
+def test_Tree_Point_point_id_save_and_restore(point_id):
+    from pymvptree import Tree, Point
+    from tempfile import mktemp
+
+    t1 = Tree()
+    t1.add(Point(point_id, b'TEST'))
+
+    tempfile = mktemp()
+    try:
+        t1.to_file(tempfile)
+        t2 = Tree.from_file(tempfile)
+    finally:
+        os.unlink(tempfile)
+
+    s1 = {p for p in t1.filter(b'TEST', 1)}
+    s2 = {p for p in t2.filter(b'TEST', 1)}
+
+    assert s1 == s2
+    assert Point(point_id, b'TEST') in s1
+
+
 @pytest.mark.wip
 @given(leafcap=st.integers(min_value=1, max_value=8),
        max_value=st.integers(min_value=1, max_value=255))

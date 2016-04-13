@@ -853,7 +853,7 @@ static off_t write_datapoint(MVPDP *dp, MVPTree *tree){
 	return start;
     }
     active = 1;
-    uint8_t idlen = strlen(dp->id);
+    unsigned int idlen = strlen(dp->id);
     uint32_t datalength = dp->datalen;
     uint8_t type = dp->type;
     bytelength = sizeof(uint8_t) + idlen + sizeof(uint32_t) +\
@@ -862,7 +862,11 @@ static off_t write_datapoint(MVPDP *dp, MVPTree *tree){
     memcpy(&buf[pos++], &active    , 1);
     memcpy(&buf[pos]  , &bytelength, sizeof(uint32_t));
     pos += sizeof(uint32_t);
-    memcpy(&buf[pos++], &idlen     , 1);
+
+    // XXX: This is not the proper way to serialize this data
+    memcpy(&buf[pos], &idlen     , sizeof(unsigned int));
+    pos += sizeof(unsigned int);
+
     memcpy(&buf[pos]  , dp->id     , idlen);
     pos += idlen;
     memcpy(&buf[pos]  , &datalength, sizeof(uint32_t));
@@ -1051,7 +1055,12 @@ MVPError mvptree_write(MVPTree *tree, const char *filename, int mode){
 }
 
 static MVPDP* read_datapoint(MVPTree *tree){
-    uint8_t active, idlen;
+    uint8_t active;
+
+    // TODO: The length of this field is not limited. We MUST change
+    // the way we serialize this data. 
+    unsigned int idlen;
+
     uint32_t bytelength, datalength;
 
     memcpy(&active, &tree->buf[tree->pos], sizeof(active));
@@ -1067,8 +1076,8 @@ static MVPDP* read_datapoint(MVPTree *tree){
     dp->path = (float*)malloc(tree->pathlength*sizeof(float));
     if (!dp->path) return NULL;
     
-    memcpy(&idlen, &tree->buf[tree->pos], sizeof(uint8_t));
-    tree->pos += sizeof(uint8_t);
+    memcpy(&idlen, &tree->buf[tree->pos], sizeof(unsigned int));
+    tree->pos += sizeof(unsigned int);
     dp->id = malloc(idlen+1);
     memcpy(dp->id, &tree->buf[tree->pos], idlen);
 
