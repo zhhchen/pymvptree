@@ -875,14 +875,20 @@ static off_t write_datapoint(MVPDP *dp, MVPTree *tree){
     tree->pos = pos;
     return start;
 }
+
 static int extend_mvpfile(MVPTree *tree){
     if (munmap(tree->buf, tree->size) < 0){
 	return -1;
     }
-    if (ftruncate(tree->fd, tree->size + tree->pgsize) < 0){
+
+    // extend needed pages plus one
+    while (tree->size <= tree->pos) tree->size += tree->pgsize;
+    tree->size += tree->pgsize;
+
+    if (ftruncate(tree->fd, tree->size) < 0){
 	return -2;
     }
-    tree->size += tree->pgsize;
+
     char *buf = (char*)mmap(NULL, tree->size, PROT_READ|PROT_WRITE, MAP_SHARED, tree->fd, 0);
     if (buf == NULL){
 	return -3;
@@ -996,19 +1002,27 @@ MVPError mvptree_write(MVPTree *tree, const char *filename, int mode){
     }
     off_t pos = 0;
 
-    uint8_t bf = tree->branchfactor;
-    uint8_t pl = tree->pathlength;
-    uint8_t lc = tree->leafcap;
+    unsigned int bf = tree->branchfactor;
+    unsigned int pl = tree->pathlength;
+    unsigned int lc = tree->leafcap;
     uint8_t ht = (uint8_t)tree->node->internal.sv1->type;
 
     /* write header */
     memcpy(&buf[pos], tag, strlen(tag)+1);
     pos += strlen(tag)+1;
+
     memcpy(&buf[pos], &version, sizeof(version));
     pos += sizeof(version);
-    memcpy(&buf[pos++], &bf, 1);
-    memcpy(&buf[pos++], &pl, 1);
-    memcpy(&buf[pos++], &lc, 1);
+
+    memcpy(&buf[pos], &bf, sizeof(unsigned int));
+    pos += sizeof(unsigned int);
+
+    memcpy(&buf[pos], &pl, sizeof(unsigned int));
+    pos += sizeof(unsigned int);
+
+    memcpy(&buf[pos], &lc, sizeof(unsigned int));
+    pos += sizeof(unsigned int);
+
     memcpy(&buf[pos++], &ht, 1);
 
     tree->buf = buf;
@@ -1057,6 +1071,7 @@ static MVPDP* read_datapoint(MVPTree *tree){
     tree->pos += sizeof(uint8_t);
     dp->id = malloc(idlen+1);
     memcpy(dp->id, &tree->buf[tree->pos], idlen);
+
     tree->pos += idlen;
     dp->id[idlen] = '\0';
     memcpy(&datalength, &tree->buf[tree->pos], sizeof(uint32_t));
@@ -1094,6 +1109,12 @@ static Node* _mvptree_read_node(MVPTree *tree, MVPError *error, int lvl){
 	off_t saved_pos = tree->pos;
 	int i;
 	off_t offset;
+
+        // XXX
+        if (nbpoints >= tree->leafcap + 2) {
+            printf("ERROR... too many points %d >= %d\n", nbpoints, tree->leafcap + 2);
+        }
+
 	for (i = 0;i < nbpoints;i++){
 	    memcpy(&(node->leaf.d1[i]), &tree->buf[saved_pos], sizeof(float));
 	    saved_pos += sizeof(float);
@@ -1181,15 +1202,23 @@ MVPTree* mvptree_read(const char *filename, CmpFunc fnc, int branchfactor, int p
     off_t pos = 0;
     char line[16];
     int v;
-    uint8_t bf, pl, lc, ht;
+    unsigned int bf, pl, lc;
+    uint8_t ht;
 
     memcpy(line, &buf[pos], strlen(tag)+1);
     pos += strlen(tag)+1;
     memcpy(&v, &buf[pos], sizeof(int));
     pos += sizeof(int);
-    memcpy(&bf, &buf[pos++], 1);
-    memcpy(&pl, &buf[pos++], 1);
-    memcpy(&lc, &buf[pos++], 1);
+
+    memcpy(&bf, &buf[pos], sizeof(unsigned int));
+    pos += sizeof(unsigned int);
+
+    memcpy(&pl, &buf[pos], sizeof(unsigned int));
+    pos += sizeof(unsigned int);
+
+    memcpy(&lc, &buf[pos], sizeof(unsigned int));
+    pos += sizeof(unsigned int);
+
     memcpy(&ht, &buf[pos++], 1);
 
     tree = mvptree_alloc(NULL, fnc, bf, pl, lc);
