@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from enum import IntEnum
 import base64
 import collections
+import os
 import pickle
 
 import _c_mvptree as mvp
@@ -195,15 +196,13 @@ class Tree:
     @classmethod
     def from_file(cls, filename):
         """Loads the tree from disk."""
-        raw_filename = filename.encode("utf-8")
         with mvp_errors() as error:
-            return cls(c_obj=mvp.lib.load(raw_filename, error))
+            return cls(c_obj=mvp.lib.load(os.fsencode(filename), error))
 
     def to_file(self, filename):
         """Writes the tree to disk."""
-        raw_filename = filename.encode("utf-8")
         with mvp_errors() as error:
-            mvp.lib.save(raw_filename, self._c_obj, error)
+            mvp.lib.save(os.fsencode(filename), self._c_obj, error)
 
     def add(self, point):
         """
