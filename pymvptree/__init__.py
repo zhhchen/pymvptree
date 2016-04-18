@@ -168,6 +168,9 @@ class Point:
     def __eq__(self, other):
         return self.point_id == other.point_id and self.data == other.data
 
+    def __repr__(self):
+        return "Point(%r, %r)" % (self.point_id, self.data)
+
 
 class Tree:
     """
