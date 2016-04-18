@@ -724,7 +724,21 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 		}
 
 	    }
-	}
+	} else {
+            // Not SV2 but still have points.
+	    for (i=0;i<node->leaf.nbpoints;i++) {
+		/* check all points */
+                // This code filter point correctly
+		float d = distance(target,node->leaf.points[i]);
+		// fprintf(stdout,"pnt%d distance(Q,%s)=%f\n",i,node->leaf.points[i]->id,d);
+		if (d <= radius){
+		    results[(*nbresults)++] = node->leaf.points[i];
+		    if (*nbresults >= tree->k){
+			return MVP_KNEARESTCAP;
+		    }
+		}
+            }
+        }
     } else if (node->internal.type == INTERNAL_NODE){
 	d1 = distance(target, node->internal.sv1);
 	if (is_nan(d1) || d1 < 0.0f){
