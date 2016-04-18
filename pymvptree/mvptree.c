@@ -337,7 +337,7 @@ static int find_distance_range_for_vp(MVPDP **points, unsigned int nbpoints, MVP
 	return -1;
     }
     CmpFunc func = tree->dist;
-    int i,j, error = 0;
+    int i, j, error = 0;
     for (i = 0; i < nbpoints; i++){
 	float d = func(vp, points[i]);
 	if (is_nan(d) || d < 0.0f){
@@ -360,7 +360,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 	return NULL;
     }
     CmpFunc dist_fnc = tree->dist;
-    int bf = tree->branchfactor, lengthM1 = bf-1;
+    unsigned int bf = tree->branchfactor, lengthM1 = bf-1;
     float max_distance, min_distance;
 
     if (new_node == NULL){ /* create new node */
@@ -382,15 +382,15 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 	    new_node->leaf.sv1 = (sv1_pos >= 0) ? points[sv1_pos] : NULL;
 	    new_node->leaf.sv2 = (sv2_pos >= 0) ? points[sv2_pos] : NULL;
 
-	    if (find_distance_range_for_vp(points, nbpoints, new_node->leaf.sv1,tree,lvl)<0){
+	    if (find_distance_range_for_vp(points, nbpoints, new_node->leaf.sv1, tree, lvl) < 0){
 		*error = MVP_NOSV1RANGE;
 		free_node(new_node);
 		return NULL;
 	    }
 	    
 	    if (new_node->leaf.sv2){
-                if (find_distance_range_for_vp(points,nbpoints,new_node->leaf.sv2,tree,lvl+1)<0){
-		    *error = MVP_NOSV2RANGE;
+                if (find_distance_range_for_vp(points, nbpoints, new_node->leaf.sv2, tree, lvl+1) < 0){
+ 		    *error = MVP_NOSV2RANGE;
 		    free_node(new_node);
 		    return NULL;
 		}
@@ -683,17 +683,18 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 	    for (i=0;i<node->leaf.nbpoints;i++){
 
 		/* check all points 
+		*/
+                // This code filter point correctly
 		float d = distance(target,node->leaf.points[i]);
-		fprintf(stdout,"pnt%d distance(Q,%s)=%f\n",i,node->leaf.points[i]->id,d);
+		// fprintf(stdout,"pnt%d distance(Q,%s)=%f\n",i,node->leaf.points[i]->id,d);
 		if (d <= radius){
 		    results[(*nbresults)++] = node->leaf.points[i];
 		    if (*nbresults >= tree->k){
 			return MVP_KNEARESTCAP;
 		    }
 		}
-		*/
 
-		/* filter points before checking */
+		/* filter points before checking 
 		if (d1 - radius <= node->leaf.d1[i] && d1 + radius >= node->leaf.d1[i]){
 		    if (d2 - radius <= node->leaf.d2[i] && d2 + radius >= node->leaf.d2[i]){
 			int endpath = (lvl+1 < tree->pathlength) ? lvl+1 : tree->pathlength;
@@ -722,6 +723,7 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 			}
 		    }
 		}
+                */
 
 	    }
 	}

@@ -347,7 +347,7 @@ def test_Tree_Point_point_id_save_and_restore(point_id):
 @pytest.mark.wip
 @given(leafcap=st.integers(min_value=1, max_value=8),
        max_value=st.integers(min_value=1, max_value=255))
-def test_Tree_try_to_add_and_filter(leafcap, max_value):
+def test_Tree_try_to_add_and_search(leafcap, max_value):
     from pymvptree import Tree, Point
 
     t = Tree(leafcap=leafcap)
@@ -368,4 +368,5 @@ def test_Tree_try_to_add_and_filter(leafcap, max_value):
             # YES, we do this in each iteration. The behaviour in issue
             # #1 is changing in each data addition.
             for d in added_data:
-                assert list(t.filter((data_formatter % d).encode("ascii"), 0))
+                # assert list(t.filter((data_formatter % d).encode("ascii"), 0))
+                assert t.exists(Point(d, (data_formatter % d).encode("ascii")))
