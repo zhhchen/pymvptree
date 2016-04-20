@@ -4,6 +4,10 @@ from hypothesis import given, assume, example
 from hypothesis import strategies as st
 import pytest
 
+import faulthandler
+
+faulthandler.enable()
+
 
 def test_import_Tree():
     try:

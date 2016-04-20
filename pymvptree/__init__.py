@@ -89,7 +89,7 @@ class Point:
 
     """
     def __init__(self, point_id=None, data=None, c_obj=None,
-                 owned_memory=True):
+                 owned_memory=True, tree=None):
 
         # `point_id` and `data` cache.
         self._point_id = None
@@ -97,6 +97,9 @@ class Point:
 
         #: If `True` cffi will free the owned memory.
         self.owned_memory = owned_memory
+
+        #: Tree owning this point.
+        self.tree = tree
 
         # Instantiate with `point_id` and `data`
         if point_id is not None and data is not None:
@@ -164,6 +167,9 @@ class Point:
 
     def __eq__(self, other):
         return self.point_id == other.point_id and self.data == other.data
+
+    def __repr__(self):
+        return "Point(%r, %r)" % (self.point_id, self.data)
 
 
 class Tree:
@@ -285,7 +291,7 @@ class Tree:
             pass
         else:
             for i in range(nbresults[0]):
-                yield Point(c_obj=res[i], owned_memory=False)
+                yield Point(c_obj=res[i], owned_memory=False, tree=self)
         finally:
             if res is not mvp.ffi.NULL:  # pragma: no branch
                 mvp.lib.free(res)
