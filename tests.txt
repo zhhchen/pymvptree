@@ -1,4 +1,4 @@
 pytest
-hypothesis
+hypothesis==1.6.2
 coverage
 pdbpp

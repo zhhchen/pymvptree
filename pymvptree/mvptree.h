@@ -107,14 +107,14 @@ typedef union node_t {
 
 
 typedef struct mvptree_t {
-    int branchfactor;      /* branch factor of tree, e.g. 2                           */
-    int pathlength;        /* number distances stored for a datapoint's distance      */
-                           /* from each vantage point going down the tree.            */
-                           /* Refers to the array of float's stored in each datapoint.*/
-    int leafcap;           /* capacity of leaf nodes  (number datapoints)             */
-    int fd;                /* internal use                                            */
-    int k;                 /* internal use for retrieve function (knearest)           */
-    MVPDataType datatype;     /* internal use                                            */  
+    unsigned int branchfactor;      /* branch factor of tree, e.g. 2                           */
+    unsigned int pathlength;        /* number distances stored for a datapoint's distance      */
+                                    /* from each vantage point going down the tree.            */
+                                    /* Refers to the array of float's stored in each datapoint.*/
+    unsigned int leafcap;           /* capacity of leaf nodes  (number datapoints)             */
+    unsigned int fd;                /* internal use                                            */
+    unsigned int k;                 /* internal use for retrieve function (knearest)           */
+    MVPDataType datatype;  /* internal use                                            */
     off_t pos;             /* internal use for mvp_read() and mvp_write()             */
     off_t size;            /* internal use for mvp_read() and mvp_write()             */
     off_t pgsize;          /* system page size (interal use)                          */

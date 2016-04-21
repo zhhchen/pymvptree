@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from enum import IntEnum
 import base64
 import collections
+import os
 import pickle
 
 import _c_mvptree as mvp
@@ -88,7 +89,7 @@ class Point:
 
     """
     def __init__(self, point_id=None, data=None, c_obj=None,
-                 owned_memory=True):
+                 owned_memory=True, tree=None):
 
         # `point_id` and `data` cache.
         self._point_id = None
@@ -96,6 +97,9 @@ class Point:
 
         #: If `True` cffi will free the owned memory.
         self.owned_memory = owned_memory
+
+        #: Tree owning this point.
+        self.tree = tree
 
         # Instantiate with `point_id` and `data`
         if point_id is not None and data is not None:
@@ -164,6 +168,9 @@ class Point:
     def __eq__(self, other):
         return self.point_id == other.point_id and self.data == other.data
 
+    def __repr__(self):
+        return "Point(%r, %r)" % (self.point_id, self.data)
+
 
 class Tree:
     """
@@ -195,15 +202,13 @@ class Tree:
     @classmethod
     def from_file(cls, filename):
         """Loads the tree from disk."""
-        raw_filename = filename.encode("utf-8")
         with mvp_errors() as error:
-            return cls(c_obj=mvp.lib.load(raw_filename, error))
+            return cls(c_obj=mvp.lib.load(os.fsencode(filename), error))
 
     def to_file(self, filename):
         """Writes the tree to disk."""
-        raw_filename = filename.encode("utf-8")
         with mvp_errors() as error:
-            mvp.lib.save(raw_filename, self._c_obj, error)
+            mvp.lib.save(os.fsencode(filename), self._c_obj, error)
 
     def add(self, point):
         """
@@ -286,7 +291,7 @@ class Tree:
             pass
         else:
             for i in range(nbresults[0]):
-                yield Point(c_obj=res[i], owned_memory=False)
+                yield Point(c_obj=res[i], owned_memory=False, tree=self)
         finally:
             if res is not mvp.ffi.NULL:  # pragma: no branch
                 mvp.lib.free(res)

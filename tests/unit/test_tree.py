@@ -4,6 +4,10 @@ from hypothesis import given, assume, example
 from hypothesis import strategies as st
 import pytest
 
+import faulthandler
+
+faulthandler.enable()
+
 
 def test_import_Tree():
     try:
@@ -172,8 +176,8 @@ def test_Tree_get_zero():
         t.get(Point(b'', b''))
 
 
-@given(datas=st.lists(st.binary(min_size=4, max_size=4)))
-def test_Tree_filter_all_points(datas):
+@given(data=st.lists(st.binary(min_size=4, max_size=4)))
+def test_Tree_filter_all_points(data):
     from pymvptree import Tree, Point
 
     def hamming(p_a, p_b): 
@@ -181,21 +185,20 @@ def test_Tree_filter_all_points(datas):
 
     t = Tree()
 
-    all_points = {Point(b'', d) for d in datas}
+    all_points = {Point(b'', d) for d in data}
     for p in all_points:
         t.add(p)
-    
+
     current_points = {p for p in t.filter(bytes(4), 4*8)}
 
     assert current_points == all_points
 
 
-@given(datas=st.lists(st.binary(min_size=4, max_size=4),
-                      average_size=1000,
-                      unique=True),
+@given(data=st.lists(st.binary(min_size=4, max_size=4),
+                     average_size=1000),
        target_data=st.binary(min_size=4, max_size=4),
        threshold=st.integers(min_value=0, max_value=32))
-def test_Tree_filter_all_points_in_threshold(datas, target_data, threshold):
+def test_Tree_filter_all_points_in_threshold(data, target_data, threshold):
     from pymvptree import Tree, Point
 
     target = Point(b'', target_data)
@@ -205,7 +208,7 @@ def test_Tree_filter_all_points_in_threshold(datas, target_data, threshold):
 
     t = Tree()
 
-    all_points = {Point(d, d) for d in datas}
+    all_points = {Point(d, d) for d in data}
     accepted_points = []
     for p in all_points:
         try:
@@ -224,17 +227,19 @@ def test_Tree_filter_all_points_in_threshold(datas, target_data, threshold):
     assert current_points == matching_points
 
 
-@given(datas=st.lists(st.binary(min_size=4, max_size=4),
-                      average_size=10000,
-                      min_size=1,
-                      unique=True))
-def test_Tree_save_and_load_match(datas):
+@given(data=st.lists(st.binary(min_size=4, max_size=4),
+                     average_size=10000,
+                     min_size=1),
+       leafcap=st.integers(min_value=1, max_value=1024**2))
+def test_Tree_save_and_load_match(data, leafcap):
+    data = list(set(data))
+
     from pymvptree import Tree, Point
     from tempfile import mktemp
 
-    t1 = Tree()
+    t1 = Tree(leafcap=leafcap)
 
-    saved_points = {Point(d, d) for d in datas}
+    saved_points = {Point(d, d) for d in data}
     for p in saved_points:
         try:
             t1.add(p)
@@ -248,8 +253,13 @@ def test_Tree_save_and_load_match(datas):
     finally:
         os.unlink(tempfile)
 
-    added_points = {p.point_id for p in t1.filter(bytes(4), 4*8)}
-    loaded_points = {p.point_id for p in t2.filter(bytes(4), 4*8)}
+    # XXX: Review why len(data) + 2 is necessary here
+    added_points = {p.point_id for p in t1.filter(bytes(4),
+                                                  4 * 8,
+                                                  limit=len(data) + 2)}
+    loaded_points = {p.point_id for p in t2.filter(bytes(4),
+                                                   4 * 8,
+                                                   limit=len(data) + 2)}
 
     assert added_points == loaded_points
 
@@ -289,3 +299,77 @@ def test_Tree_add_until_full_then_search():
     post_full = {p.point_id for p in t.filter(b'TEST', 0)}
 
     assert pre_full == post_full
+
+
+@given(leafcap=st.integers(min_value=1, max_value=10),
+       data=st.lists(st.binary(min_size=1, max_size=1),
+                     min_size=1,
+                     average_size=100))
+def test_Tree_add_and_exists_until_full(leafcap, data):
+    from pymvptree import Tree, Point
+
+    t = Tree(leafcap=leafcap)
+
+    added_data = set()
+
+    for d in data:
+        try:
+            point = Point(d, d)
+            t.add(point)
+        except:
+            break
+        else:
+            assert t.exists(Point(d, d))
+            added_data.add(point)
+
+    assert added_data
+    assert added_data == set(t.filter(b'0', 8))
+
+
+@given(point_id=st.text())
+def test_Tree_Point_point_id_save_and_restore(point_id):
+    from pymvptree import Tree, Point
+    from tempfile import mktemp
+
+    t1 = Tree()
+    t1.add(Point(point_id, b'TEST'))
+
+    tempfile = mktemp()
+    try:
+        t1.to_file(tempfile)
+        t2 = Tree.from_file(tempfile)
+    finally:
+        os.unlink(tempfile)
+
+    s1 = {p for p in t1.filter(b'TEST', 1)}
+    s2 = {p for p in t2.filter(b'TEST', 1)}
+
+    assert s1 == s2
+    assert Point(point_id, b'TEST') in s1
+
+
+@pytest.mark.wip
+@given(leafcap=st.integers(min_value=1, max_value=8),
+       max_value=st.integers(min_value=1, max_value=255))
+def test_Tree_try_to_add_and_filter(leafcap, max_value):
+    from pymvptree import Tree, Point
+
+    t = Tree(leafcap=leafcap)
+
+    added_data = []
+
+    maxlength = len(str(max_value))
+    data_formatter = "%%0%d.d" % maxlength
+
+    for i in range(max_value):
+        try:
+            t.add(Point(i, (data_formatter % i).encode("ascii")))
+        except:
+            pass
+        else:
+            added_data.append(i)
+        finally:
+            # YES, we do this in each iteration. The behaviour in issue
+            # #1 is changing in each data addition.
+            for d in added_data:
+                assert list(t.filter((data_formatter % d).encode("ascii"), 0))
