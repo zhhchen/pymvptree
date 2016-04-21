@@ -39,8 +39,8 @@
 #define _FILE_OFFSET_BITS 64
 #define _LARGEFILE64_SOURCE
 
-const char *tag = "phashmvp2010";
-const int version = 0x01000000;
+const char *tag = "pymvptree";
+const int version = 0x02000000;
 
 const char *error_msgs[] = {
     "no error",
